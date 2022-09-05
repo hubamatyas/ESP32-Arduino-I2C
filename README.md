@@ -1,2 +1,2 @@
 # ESP32-Arduino-I2C
- I2C connaction to transfer integers and floats between ESP32 and Ardunio.
+I2C connection to transfer integers and floats between ESP32 and Ardunio. Wire.Write function can only transfer integers with the maximum value of 255 (i.e., the size of one byte), therefore integers and floating-point numbers are encoded using binary encoding where every two bytes represented a number. Floats were first converted to integers by multiplying them by 100 (multiply accordingly if you have higher precision floats) and were only then encoded.
