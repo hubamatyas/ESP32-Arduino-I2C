@@ -15,3 +15,9 @@ Thingsboard connects to the ESP32 via the MQTT protocol to achieve fast and reli
 
 ### Thingsboard
 Each metric has its own control widgets, knob controls, and their time series charts. When a user changes the value using the knob, Thingsboard sends commands to the ESP32, which then forwards the values to the Arudino. The Ardunio then sets the specified values in its subsystems and sends back telemetry data (via the ESP32) to Thingsboard.
+
+![Thingsboard dashboard](https://github.com/hubamatyas/ESP32-Thingsboard-IoT-Dashboard/blob/main/dashboard.png)
+
+### Architecture
+![System architecture](https://github.com/hubamatyas/ESP32-Thingsboard-IoT-Dashboard/blob/main/architecture.png)
+
