@@ -1,15 +1,15 @@
-#include "ThingsBoard.h"
 #include <WiFi.h>
-#include "esp_wpa2.h" //wpa2 library for connections to Enterprise networks
 #include <Wire.h>
+#include "esp_wpa2.h"
+#include "ThingsBoard.h"
 
 // define wife ssid, identity and password
-#define EAP_IDENTITY "zcabhoj@ucl.ac.uk"
-#define EAP_PASSWORD "yourpassword"
-#define ssid "eduroam"
+#define EAP_IDENTITY "your_email"
+#define EAP_PASSWORD "your_password"
+#define ssid "your_ssid"
 
-// define token and server
-#define TOKEN               "DssDXSgSIhf7UchV8WO2"//"0ytHNB5jCAyQYxkAlBfs"
+// define token and server (thingsboard credentials)
+#define TOKEN               "DssDXSgSIhf7UchV8WO2"
 #define THINGSBOARD_SERVER  "demo.thingsboard.io"
 
 // Baud rate for debug serial
@@ -32,17 +32,19 @@ float temp;
 float ph;
 int rpm;
 
-WiFiClient espClient;           // Initialize ThingsBoard client
-PubSubClient client(espClient); //Initailise client instance
-ThingsBoard tb(espClient);      // Initialize ThingsBoard instance
-int status = WL_IDLE_STATUS;    // the Wifi radio's status
+// Initialize MQTT and ThingsBoard client
+WiFiClient espClient;
+PubSubClient client(espClient); 
+
+// Initialize ThingsBoard instance
+ThingsBoard tb(espClient);      
+int status = WL_IDLE_STATUS;
 
 
 void InitWiFi()
 {
   Serial.println();
   Serial.print("Connecting to ");
-  // attempt to connect to WiFi network
   Serial.println(ssid);
   
   WiFi.mode(WIFI_STA);
@@ -55,10 +57,9 @@ void InitWiFi()
     delay(500);
     Serial.print(F("."));
   }
-  Serial.println("");
   Serial.println(F("Connected to AP successfully!"));
   Serial.print(F("IP address set: "));
-  Serial.println(WiFi.localIP()); // print LAN IP
+  Serial.println(WiFi.localIP());
 }
 
 void reconnectWiFi() {
@@ -79,9 +80,8 @@ void reconnectWiFi() {
   }
 }
 
-// Processes function for RPC call "example_set_temperature"
-// RPC_Data is a JSON variant, that can be queried using operator[]
-// See https://arduinojson.org/v5/api/jsonvariant/subscript/ for more details
+// Processes function for RPC call "set_temperature"
+// RPC_Data is a JSON variant, that can be queried using []
 RPC_Response processTemperatureChange(const RPC_Data &data)
 {
   Serial.println("Received the set temperature RPC method");
@@ -89,10 +89,9 @@ RPC_Response processTemperatureChange(const RPC_Data &data)
   // Process data
   float temperature = data;
   tar_temp = temperature;
-  Serial.print("Example temperature: ");
+  Serial.print("Temperature: ");
   Serial.println(temperature);
 
-  // Just an response example
   return RPC_Response();
 }
 
@@ -103,10 +102,9 @@ RPC_Response processPhChange(const RPC_Data &data)
   // Process data
   float Ph = data;
   tar_ph = Ph;
-  Serial.print("Ph value: ");
+  Serial.print("Ph: ");
   Serial.println(Ph);
 
-  // Just an response example
   return RPC_Response();
 }
 
@@ -117,28 +115,24 @@ RPC_Response processRpmChange(const RPC_Data &data)
   // Process data
   int rpm = data;
   tar_rpm = rpm;
-  Serial.print("rpm : ");
+  Serial.print("RPM : ");
   Serial.println(rpm);
 
-  // Just an response example
   return RPC_Response();
 }
 
-// Processes function for RPC call "example_set_switch"
-// RPC_Data is a JSON variant, that can be queried using operator[]
-// See https://arduinojson.org/v5/api/jsonvariant/subscript/ for more details
+// Processes function for RPC call "set_switch"
+// RPC_Data is a JSON variant, that can be queried using []
 RPC_Response processSwitchChange(const RPC_Data &data)
 {
   Serial.println("Received the set switch method");
 
   // Process data
-
   bool switch_state = data;
   
-  Serial.print("Example switch state: ");
+  Serial.print("Switch state: ");
   Serial.println(switch_state);
 
-  // Just an response example
   return RPC_Response();
 }
 
@@ -159,13 +153,12 @@ void encode(double num, int* ptr) {
 }
 
 void setup() {
-  // configure the pins
   Wire.begin (I2C_SDA, I2C_SCL);
-  // initialize serial for debugging
   Serial.begin(SERIAL_DEBUG_BAUD);
   InitWiFi();
-  //client.setServer(THINGSBOARD_SERVER, 1883);
-  //client.setCallback(callback);
+
+  client.setServer(THINGSBOARD_SERVER, 1883);
+  client.setCallback(callback);
 }
 
 void loop() {
@@ -181,6 +174,7 @@ void loop() {
     ph = int(Wire.read()) * 256;
     ph += int(Wire.read());
   }
+
   // debugging print statements
   temp = temp / 100;
   ph = ph / 100;
@@ -189,11 +183,9 @@ void loop() {
   Serial.println(temp);
   Serial.println(rpm);
   Serial.println(ph);
-  Serial.println(); // print the character
+  Serial.println();
 
-
-
-  // reconnect to WiFi
+  // reconnect to WiFi if connection is lost
   if (WiFi.status() != WL_CONNECTED) {
     reconnectWiFi();
   }
@@ -201,7 +193,7 @@ void loop() {
 
   // reconnect to ThingsBoard
   if (!tb.connected()) {
-    // Connect to the ThingsBoard
+    // Connect to ThingsBoard
     Serial.print("Connecting to: ");
     Serial.print(THINGSBOARD_SERVER);
     Serial.print(" with token ");
@@ -215,9 +207,7 @@ void loop() {
   Serial.println("Sending data...");
 
   // Uploads new telemetry to ThingsBoard using MQTT.
-  // See https://thingsboard.io/docs/reference/mqtt-api/#telemetry-upload-api
-  // for more details
-  
+  // See https://thingsboard.io/docs/reference/mqtt-api/#telemetry-upload-api  
   
   tb.sendTelemetryFloat("temperature", temp);
   tb.sendTelemetryFloat("ph", ph);
@@ -240,11 +230,12 @@ void loop() {
 
   Serial.println("Waiting for data...");
 
-    // send data to slave
-  Wire.beginTransmission(SLAVE_ADDR); // transmit to device
+  // send data to slave
+  Wire.beginTransmission(SLAVE_ADDR);
   int* temp_encoded;
   int* rpm_encoded;
   int* ph_encoded;
+  
   encode(tar_temp*100, temp_encoded);
   encode(tar_rpm, rpm_encoded);
   encode(tar_ph*100, ph_encoded);
